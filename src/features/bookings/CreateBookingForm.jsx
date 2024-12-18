@@ -9,11 +9,13 @@ import Textarea from "../../ui/Textarea";
 
 import { useForm } from "react-hook-form";
 import { useState } from "react";
-import { formatDate } from "../../utils/helpers";
+import { formatDate, subtractDates } from "../../utils/helpers";
+import { useCreateBooking } from "./useCreateBooking";
 
 function CreateBookingForm({ onCloseModal }) {
   const [selectedGuestId, setSelectedGuestId] = useState("");
   const [selectedCabinId, setSelectedCabinId] = useState("");
+  const { isCreating, createBooking } = useCreateBooking();
 
   const guestOptions = [
     { value: 33, label: "Jonas Schmedtmann" },
@@ -28,15 +30,24 @@ function CreateBookingForm({ onCloseModal }) {
   const { errors } = formState;
 
   function onSubmit(data) {
-    const formattedData = {
+    const numNights = subtractDates(data.endDate, data.startDate);
+    const cabinPrice = 250 * numNights;
+    const extrasPrice = 15 * Number(data.numGuests) * numNights;
+    const bookingData = {
       ...data,
       guestId: parseInt(data.guestId),
       cabinId: parseInt(data.cabinId),
       numGuests: parseInt(data.numGuests),
       startDate: formatDate(data.startDate),
       endDate: formatDate(data.endDate),
+      numNights,
+      status: "unconfirmed",
+      cabinPrice: cabinPrice,
+      extrasPrice: extrasPrice,
+      totalPrice: cabinPrice + extrasPrice,
     };
-    console.log(formattedData);
+    console.log(bookingData);
+    createBooking(bookingData);
   }
 
   function onError(errors) {
