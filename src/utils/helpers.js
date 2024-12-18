@@ -1,5 +1,11 @@
 import { differenceInDays, formatDistance, parseISO } from "date-fns";
 
+export const formatDate = (date) => {
+  const parsedDate = new Date(date);
+  parsedDate.setUTCHours(0, 0, 0, 0); // Set time to midnight UTC
+  return parsedDate.toISOString().slice(0, -1); // Remove timezone offset
+};
+
 // We want to make this function work for both Date objects and strings (which come from Supabase)
 export const subtractDates = (dateStr1, dateStr2) =>
   differenceInDays(parseISO(String(dateStr1)), parseISO(String(dateStr2)));
