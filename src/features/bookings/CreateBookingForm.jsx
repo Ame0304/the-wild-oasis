@@ -6,15 +6,19 @@ import Select from "../../ui/Select";
 import Heading from "../../ui/Heading";
 import Checkbox from "../../ui/Checkbox";
 import Textarea from "../../ui/Textarea";
+import RefSelect from "../../ui/RefSelect";
+import RefCheckbox from "../../ui/RefCheckbox";
 
 import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { formatDate, subtractDates } from "../../utils/helpers";
 import { useCreateBooking } from "./useCreateBooking";
+import { useSettings } from "../settings/useSettings";
 
 function CreateBookingForm({ onCloseModal }) {
   const [selectedGuestId, setSelectedGuestId] = useState("");
   const [selectedCabinId, setSelectedCabinId] = useState("");
+  const { settings, isLoading: isLoadingSettings } = useSettings();
   const { isCreating, createBooking } = useCreateBooking();
 
   const guestOptions = [
@@ -30,6 +34,7 @@ function CreateBookingForm({ onCloseModal }) {
   const { errors } = formState;
 
   function onSubmit(data) {
+    // format and add extra necessary data to the booking
     const numNights = subtractDates(data.endDate, data.startDate);
     const cabinPrice = 250 * numNights;
     const extrasPrice = 15 * Number(data.numGuests) * numNights;
@@ -47,7 +52,7 @@ function CreateBookingForm({ onCloseModal }) {
       totalPrice: cabinPrice + extrasPrice,
     };
     console.log(bookingData);
-    createBooking(bookingData);
+    // createBooking(bookingData);
   }
 
   function onError(errors) {
@@ -62,17 +67,12 @@ function CreateBookingForm({ onCloseModal }) {
       <Heading as="h1">Create a booking</Heading>
       {/* Guest Section*/}
       <FormRow label="Guest" error={errors?.guestId?.message}>
-        <select
+        <RefSelect
           id="guest"
+          options={guestOptions}
           {...register("guestId", { required: "This field is required" })}
           onChange={(e) => setSelectedGuestId(e.target.value)}
-        >
-          {guestOptions.map((option) => (
-            <option value={option.value} key={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+        />
       </FormRow>
 
       {/* Booking Details */}
@@ -118,29 +118,24 @@ function CreateBookingForm({ onCloseModal }) {
       </FormRow>
 
       <FormRow label="Cabin" error={errors?.cabinId?.message}>
-        <select
+        <RefSelect
           id="cabin"
+          options={cabinOptions}
           {...register("cabinId", { required: "This field is required" })}
           onChange={(e) => setSelectedCabinId(e.target.value)}
-        >
-          {cabinOptions.map((option) => (
-            <option value={option.value} key={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+        />
       </FormRow>
 
       <FormRow label="Has breakfast" error={errors?.hasBreakfast?.message}>
-        <Input
-          type="checkbox"
-          id="hasBreakfast"
-          {...register("hasBreakfast")}
-        ></Input>
+        <RefCheckbox id="hasBreakfast" {...register("hasBreakfast")}>
+          $ {settings?.breakfastPrice} per guest per night
+        </RefCheckbox>
       </FormRow>
 
       <FormRow label="Booking Paid" error={errors?.isPaid?.message}>
-        <Input type="checkbox" id="isPaid" {...register("isPaid")}></Input>
+        <RefCheckbox id="isPaid" {...register("isPaid")}>
+          Guest already paid
+        </RefCheckbox>
       </FormRow>
 
       <FormRow label="Observations" error={errors?.observations?.message}>
