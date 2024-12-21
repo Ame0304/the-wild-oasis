@@ -1,19 +1,20 @@
+import React, { useEffect, useState } from "react";
 import Input from "../../ui/Input";
 import Form from "../../ui/Form";
 import Button from "../../ui/Button";
 import FormRow from "../../ui/FormRow";
 import Heading from "../../ui/Heading";
 import Textarea from "../../ui/Textarea";
-import RefSelect from "../../ui/RefSelect";
 import RefCheckbox from "../../ui/RefCheckbox";
 import AsyncSelect from "react-select/async";
+import Select from "react-select";
 
 import { useForm, Controller } from "react-hook-form";
-import { useState } from "react";
 import { formatDate, subtractDates } from "../../utils/helpers";
 import { useCreateBooking } from "./useCreateBooking";
 import { useSettings } from "../settings/useSettings";
 import { getGuests } from "../../services/apiGuests";
+import { getAvailableCabins } from "../../services/apiCabins";
 
 const selectCustomStyles = {
   control: (base, state) => ({
@@ -38,25 +39,33 @@ const selectCustomStyles = {
 };
 
 function CreateBookingForm({ onCloseModal }) {
-  const [selectedCabinId, setSelectedCabinId] = useState("");
+  const [cabinOptions, setCabinOptions] = useState([]);
   const { settings, isLoading: isLoadingSettings } = useSettings();
-  const { register, formState, getValues, handleSubmit, control } = useForm();
-  const { errors } = formState;
-
   const { isCreating, createBooking } = useCreateBooking();
+  const { register, formState, getValues, handleSubmit, control, watch } =
+    useForm();
+  const { errors } = formState;
+  const isWorking = isCreating || isLoadingSettings;
 
-  const loadOptions = async (searchTerm) => {
+  const guestOptions = async (searchTerm) => {
     const guests = await getGuests(searchTerm);
     return guests;
   };
 
-  const cabinOptions = [
-    { value: 24, label: "001" },
-    { value: 25, label: "002" },
-  ];
+  const loadCabinOptions = async () => {
+    const { startDate, endDate, numGuests } = getValues();
+    // Only fetch if all required fields are filled
+    if (!startDate || !endDate || !numGuests) return;
+    const cabins = await getAvailableCabins(startDate, endDate, numGuests);
+    console.log(cabins);
+    setCabinOptions(cabins);
+  };
+
+  useEffect(() => {
+    loadCabinOptions();
+  }, [watch("startDate"), watch("endDate"), watch("numGuests")]);
 
   function onSubmit(data) {
-    console.log(data);
     // format and add extra necessary data to the booking
     const numNights = subtractDates(data.endDate, data.startDate);
     const cabinPrice = 250 * numNights;
@@ -75,7 +84,7 @@ function CreateBookingForm({ onCloseModal }) {
       totalPrice: cabinPrice + extrasPrice,
     };
     console.log(bookingData);
-    // createBooking(bookingData);
+    createBooking(bookingData);
   }
 
   function onError(errors) {
@@ -99,12 +108,13 @@ function CreateBookingForm({ onCloseModal }) {
             <AsyncSelect
               {...field}
               styles={selectCustomStyles}
-              loadOptions={loadOptions}
+              loadOptions={guestOptions}
               defaultOptions
               onChange={(selectedOption) => {
                 field.onChange(selectedOption);
               }}
               placeholder="Search for a guest"
+              disabled={isWorking}
             />
           )}
         />
@@ -115,7 +125,7 @@ function CreateBookingForm({ onCloseModal }) {
         <Input
           type="date"
           id="startDate"
-          disabled={isCreating}
+          disabled={isWorking}
           {...register("startDate", {
             required: "This field is required",
           })}
@@ -126,7 +136,7 @@ function CreateBookingForm({ onCloseModal }) {
         <Input
           type="date"
           id="endDate"
-          disabled={isCreating}
+          disabled={isWorking}
           {...register("endDate", {
             required: "This field is required",
             validate: (value) => {
@@ -144,7 +154,7 @@ function CreateBookingForm({ onCloseModal }) {
         <Input
           type="number"
           id="numGuests"
-          disabled={isCreating}
+          disabled={isWorking}
           {...register("numGuests", {
             required: "This field is required",
             min: {
@@ -156,12 +166,21 @@ function CreateBookingForm({ onCloseModal }) {
       </FormRow>
 
       <FormRow label="Cabin" error={errors?.cabinId?.message}>
-        <RefSelect
-          id="cabin"
-          options={cabinOptions}
-          disabled={isCreating}
-          {...register("cabinId", { required: "This field is required" })}
-          onChange={(e) => setSelectedCabinId(e.target.value)}
+        <Controller
+          name="cabinId"
+          control={control}
+          render={({ field }) => (
+            <Select
+              {...field}
+              styles={selectCustomStyles}
+              options={cabinOptions}
+              placeholder="Select a cabin"
+              onChange={(option) => field.onChange(option.value)}
+              value={cabinOptions.find(
+                (option) => option.value === field.value
+              )}
+            />
+          )}
         />
       </FormRow>
 
@@ -169,14 +188,14 @@ function CreateBookingForm({ onCloseModal }) {
         <RefCheckbox
           id="hasBreakfast"
           {...register("hasBreakfast")}
-          disabled={isCreating}
+          disabled={isWorking}
         >
           $ {settings?.breakfastPrice} per guest per night
         </RefCheckbox>
       </FormRow>
 
       <FormRow label="Booking Paid" error={errors?.isPaid?.message}>
-        <RefCheckbox id="isPaid" {...register("isPaid")} disabled={isCreating}>
+        <RefCheckbox id="isPaid" {...register("isPaid")} disabled={isWorking}>
           Guest already paid
         </RefCheckbox>
       </FormRow>
@@ -186,7 +205,7 @@ function CreateBookingForm({ onCloseModal }) {
           id="observations"
           defaultValue=""
           {...register("observations")}
-          disabled={isCreating}
+          disabled={isWorking}
         />
       </FormRow>
 
@@ -196,11 +215,11 @@ function CreateBookingForm({ onCloseModal }) {
           variation="secondary"
           type="reset"
           onClick={() => onCloseModal?.()}
-          disabled={isCreating}
+          disabled={isWorking}
         >
           Cancel
         </Button>
-        <Button disabled={isCreating}>Create new booking</Button>
+        <Button disabled={isWorking}>Create new booking</Button>
       </FormRow>
     </Form>
   );

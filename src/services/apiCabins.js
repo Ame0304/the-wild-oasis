@@ -1,4 +1,6 @@
+import { format } from "date-fns";
 import supabase, { supabaseUrl } from "./supabase";
+import { formatDate } from "../utils/helpers";
 
 export async function getCabins() {
   const { data, error } = await supabase.from("cabins").select("*");
@@ -9,6 +11,44 @@ export async function getCabins() {
   }
 
   return data;
+}
+
+export async function getAvailableCabins(startDate, endDate, guestCount) {
+  console.log(startDate, endDate, guestCount);
+  // Get cabins with overlapping bookings
+  const { data: bookedCabins, error: bookingError } = await supabase
+    .from("bookings")
+    .select("cabinId")
+    .lte("startDate", endDate) // booking starts before or on the requested end date
+    .gte("endDate", startDate); // booking ends after or on the requested start date
+
+  if (bookingError) {
+    console.error("Error fetching bookings", bookingError);
+    return [];
+  }
+
+  // Get the array of booked cabin IDs
+  const bookedCabinIds = bookedCabins.map((booking) => booking.cabinId);
+
+  // Then get available cabins
+  const { data, error: cabinError } = await supabase
+    .from("cabins")
+    .select("id, name, maxCapacity")
+    .gte("maxCapacity", guestCount)
+    .not("id", "in", `(${bookedCabinIds.join(",")})`);
+
+  if (cabinError) {
+    console.error("Error fetching cabins", cabinError);
+    return [];
+  }
+
+  const availableCabins = data.map((cabin) => ({
+    value: cabin.id,
+    label: `${cabin.name} - ${cabin.maxCapacity} guests`,
+  }));
+  console.log(availableCabins);
+
+  return availableCabins;
 }
 
 export async function createEditCabin(newCabin, id) {
