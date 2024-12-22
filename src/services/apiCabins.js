@@ -14,7 +14,6 @@ export async function getCabins() {
 }
 
 export async function getAvailableCabins(startDate, endDate, guestCount) {
-  console.log(startDate, endDate, guestCount);
   // Get cabins with overlapping bookings
   const { data: bookedCabins, error: bookingError } = await supabase
     .from("bookings")
@@ -33,7 +32,7 @@ export async function getAvailableCabins(startDate, endDate, guestCount) {
   // Then get available cabins
   const { data, error: cabinError } = await supabase
     .from("cabins")
-    .select("id, name, maxCapacity")
+    .select("id, name, maxCapacity, regularPrice, discount")
     .gte("maxCapacity", guestCount)
     .not("id", "in", `(${bookedCabinIds.join(",")})`);
 
@@ -42,13 +41,7 @@ export async function getAvailableCabins(startDate, endDate, guestCount) {
     return [];
   }
 
-  const availableCabins = data.map((cabin) => ({
-    value: cabin.id,
-    label: `${cabin.name} - ${cabin.maxCapacity} guests`,
-  }));
-  console.log(availableCabins);
-
-  return availableCabins;
+  return data;
 }
 
 export async function createEditCabin(newCabin, id) {

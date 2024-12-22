@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Input from "../../ui/Input";
 import Form from "../../ui/Form";
 import Button from "../../ui/Button";
@@ -57,8 +57,17 @@ function CreateBookingForm({ onCloseModal }) {
     // Only fetch if all required fields are filled
     if (!startDate || !endDate || !numGuests) return;
     const cabins = await getAvailableCabins(startDate, endDate, numGuests);
-    console.log(cabins);
-    setCabinOptions(cabins);
+    const availableCabins = cabins.map((cabin) => ({
+      value: {
+        id: cabin.id,
+        regularPrice: cabin.regularPrice,
+        discount: cabin.discount,
+      },
+      label: `${cabin.name} - ${cabin.maxCapacity} guests - $${
+        cabin.regularPrice - cabin.discount
+      }`,
+    }));
+    setCabinOptions(availableCabins);
   };
 
   useEffect(() => {
@@ -68,13 +77,15 @@ function CreateBookingForm({ onCloseModal }) {
   function onSubmit(data) {
     // format and add extra necessary data to the booking
     const numNights = subtractDates(data.endDate, data.startDate);
-    const cabinPrice = 250 * numNights;
-    const extrasPrice = 15 * Number(data.numGuests) * numNights;
+    const cabinPrice = data.cabinId.value.regularPrice * numNights;
+    const extrasPrice = data.hasBreakfast
+      ? settings?.breakfastPrice * Number(data.numGuests) * numNights
+      : 0;
     const bookingData = {
       ...data,
-      guestId: parseInt(data.guestId.value), // async select returns a guest object
-      cabinId: parseInt(data.cabinId),
-      numGuests: parseInt(data.numGuests),
+      guestId: Number(data.guestId.value), // async select returns a guest object
+      cabinId: Number(data.cabinId.value.id),
+      numGuests: Number(data.numGuests),
       startDate: formatDate(data.startDate),
       endDate: formatDate(data.endDate),
       numNights,
@@ -83,7 +94,6 @@ function CreateBookingForm({ onCloseModal }) {
       extrasPrice: extrasPrice,
       totalPrice: cabinPrice + extrasPrice,
     };
-    console.log(bookingData);
     createBooking(bookingData);
   }
 
@@ -175,10 +185,10 @@ function CreateBookingForm({ onCloseModal }) {
               styles={selectCustomStyles}
               options={cabinOptions}
               placeholder="Select a cabin"
-              onChange={(option) => field.onChange(option.value)}
-              value={cabinOptions.find(
-                (option) => option.value === field.value
-              )}
+              onChange={(option) => {
+                field.onChange(option);
+              }}
+              value={field.value}
             />
           )}
         />
