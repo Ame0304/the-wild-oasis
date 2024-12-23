@@ -8,6 +8,7 @@ import Textarea from "../../ui/Textarea";
 import RefCheckbox from "../../ui/RefCheckbox";
 import AsyncSelect from "react-select/async";
 import Select from "react-select";
+import { Link } from "react-router-dom";
 
 import { useForm, Controller } from "react-hook-form";
 import { formatDate, subtractDates } from "../../utils/helpers";
@@ -15,6 +16,7 @@ import { useCreateBooking } from "./useCreateBooking";
 import { useSettings } from "../settings/useSettings";
 import { getGuests } from "../../services/apiGuests";
 import { getAvailableCabins } from "../../services/apiCabins";
+import FormRowHeading from "../../ui/FormRowHeading";
 
 const selectCustomStyles = {
   control: (base, state) => ({
@@ -24,6 +26,7 @@ const selectCustomStyles = {
       : "var(--color-grey-300)",
     "&:hover": {
       borderColor: "var(--color-indigo-700)",
+      color: "var(--color-grey-0)",
     },
   }),
   option: (styles, { isFocused, isSelected }) => ({
@@ -106,7 +109,13 @@ function CreateBookingForm({ onCloseModal }) {
       type={onCloseModal ? "modal" : "regular"}
       onSubmit={handleSubmit(onSubmit, onError)}
     >
-      <Heading as="h1">Create a booking</Heading>
+      <FormRowHeading>
+        <Heading as="h1">Create a booking </Heading>
+        <Button size="small" variation="primary" as={Link} to={`/`}>
+          Add a new guest
+        </Button>
+      </FormRowHeading>
+
       {/* Guest Section*/}
 
       <FormRow label="Guest" error={errors?.guestId?.message}>

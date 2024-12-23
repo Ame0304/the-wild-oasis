@@ -18,3 +18,13 @@ export async function getGuests(searchTerm = "") {
 
   return guests;
 }
+
+export async function createGuest(obj) {
+  const { data, error } = await supabase.from("guests").insert(obj).select();
+
+  if (error) {
+    console.error(error);
+    throw new Error("Guest could not be created");
+  }
+  return data;
+}

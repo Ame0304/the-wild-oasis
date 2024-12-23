@@ -1,4 +1,5 @@
 import { differenceInDays, formatDistance, parseISO } from "date-fns";
+import countryList from "react-select-country-list";
 
 export const formatDate = (date) => {
   const parsedDate = new Date(date);
@@ -33,3 +34,17 @@ export const formatCurrency = (value) =>
   new Intl.NumberFormat("en", { style: "currency", currency: "USD" }).format(
     value
   );
+
+export const getCountryOptions = () => {
+  const getCountriesWithFlags = () => {
+    const counties = countryList().getData();
+    return counties.map((country) => ({
+      name: country.label,
+      code: country.value.toLowerCase(), // Lowercase for flagcdn compatibility
+      flagUrl: `https://flagcdn.com/${country.value.toLowerCase()}.svg`,
+    }));
+  };
+  const countries = getCountriesWithFlags();
+
+  return countries;
+};
